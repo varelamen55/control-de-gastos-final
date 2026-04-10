@@ -1,26 +1,20 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
+import React, { useEffect, useMemo, useState } from 'react'
 import {
-  Trash2,
-  Plus,
-  Euro,
-  PiggyBank,
-  TrendingUp,
-  Wallet,
   AlertTriangle,
-  LineChart,
-  Sparkles,
-  Save,
-  RotateCcw,
-  Smartphone,
-  Upload,
   Download,
-} from "lucide-react";
+  Euro,
+  LineChart,
+  PiggyBank,
+  RotateCcw,
+  Save,
+  Smartphone,
+  Sparkles,
+  TrendingUp,
+  Upload,
+  Wallet,
+  Plus,
+  Trash2,
+} from 'lucide-react'
 import {
   ResponsiveContainer,
   LineChart as ReLineChart,
@@ -29,19 +23,19 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   BarChart,
   Bar,
-  Legend,
-} from "recharts";
+} from 'recharts'
 
-const eur = new Intl.NumberFormat("es-ES", {
-  style: "currency",
-  currency: "EUR",
+const STORAGE_KEY = 'control-de-gastos-iphone-v1'
+const APP_NAME = 'CONTROL DE GASTOS'
+
+const eur = new Intl.NumberFormat('es-ES', {
+  style: 'currency',
+  currency: 'EUR',
   maximumFractionDigits: 2,
-});
-
-const STORAGE_KEY = "app-control-gastos-iphone-v1";
-const APP_NAME = "CONTROL DE GASTOS";
+})
 
 const defaultData = {
   salary1: 0,
@@ -51,25 +45,25 @@ const defaultData = {
   targetSavingPct: 20,
   extraIncomeItems: [],
   fixedExpenses: [
-    { id: 1, name: "ChatGPT Plus", amount: 20 },
-    { id: 2, name: "Club deportivo", amount: 35 },
+    { id: 1, name: 'ChatGPT Plus', amount: 20 },
+    { id: 2, name: 'Club deportivo', amount: 35 },
   ],
   extraExpenseItems: [],
   investments: [
-    { id: 1, name: "S&P 500", amount: 150 },
-    { id: 2, name: "Oro", amount: 50 },
-    { id: 3, name: "ACWI", amount: 100 },
+    { id: 1, name: 'S&P 500', amount: 150 },
+    { id: 2, name: 'Oro', amount: 50 },
+    { id: 3, name: 'ACWI', amount: 100 },
   ],
   variableExpenses: [],
   monthlyHistory: [],
-};
+}
 
 function loadInitialData() {
-  if (typeof window === "undefined") return defaultData;
+  if (typeof window === 'undefined') return defaultData
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultData;
-    const parsed = JSON.parse(raw);
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return defaultData
+    const parsed = JSON.parse(raw)
     return {
       ...defaultData,
       ...parsed,
@@ -79,30 +73,47 @@ function loadInitialData() {
       investments: parsed.investments ?? defaultData.investments,
       variableExpenses: parsed.variableExpenses ?? defaultData.variableExpenses,
       monthlyHistory: parsed.monthlyHistory ?? defaultData.monthlyHistory,
-    };
+    }
   } catch {
-    return defaultData;
+    return defaultData
   }
 }
 
 function downloadBackup(data) {
-  if (typeof window === "undefined") return;
-  const blob = new Blob([JSON.stringify(data, null, 2)], {
-    type: "application/json",
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "control-gastos-backup.json";
-  link.click();
-  URL.revokeObjectURL(url);
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'control-gastos-backup.json'
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
-function NumberField({ label, value, onChange, placeholder = "0" }) {
+function Card({ title, icon, children, subtitle }) {
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <Input
+    <section style={styles.card}>
+      {(title || subtitle) && (
+        <div style={styles.cardHeader}>
+          <div style={styles.cardTitleWrap}>
+            {icon}
+            <div>
+              {title && <h3 style={styles.cardTitle}>{title}</h3>}
+              {subtitle && <p style={styles.cardSubtitle}>{subtitle}</p>}
+            </div>
+          </div>
+        </div>
+      )}
+      <div>{children}</div>
+    </section>
+  )
+}
+
+function NumberField({ label, value, onChange, placeholder = '0' }) {
+  return (
+    <div style={styles.fieldWrap}>
+      <label style={styles.label}>{label}</label>
+      <input
+        style={styles.input}
         type="number"
         min="0"
         step="0.01"
@@ -111,176 +122,166 @@ function NumberField({ label, value, onChange, placeholder = "0" }) {
         onChange={(e) => onChange(Number(e.target.value) || 0)}
       />
     </div>
-  );
+  )
+}
+
+function TextField({ label, value, onChange, placeholder = '' }) {
+  return (
+    <div style={styles.fieldWrap}>
+      <label style={styles.label}>{label}</label>
+      <input
+        style={styles.input}
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  )
+}
+
+function ActionButton({ children, onClick, type = 'button', ghost = false }) {
+  return (
+    <button type={type} onClick={onClick} style={{ ...styles.button, ...(ghost ? styles.buttonGhost : {}) }}>
+      {children}
+    </button>
+  )
 }
 
 function SectionList({ title, items, setItems, extraField = false }) {
-  const [name, setName] = useState("");
-  const [amount, setAmount] = useState(0);
-  const [category, setCategory] = useState("");
+  const [name, setName] = useState('')
+  const [amount, setAmount] = useState(0)
+  const [category, setCategory] = useState('')
 
   const addItem = () => {
-    if (!name || amount <= 0) return;
+    if (!name || amount <= 0) return
     setItems([
       ...items,
-      {
-        id: Date.now(),
-        name,
-        amount,
-        ...(extraField ? { category: category || "Otros" } : {}),
-      },
-    ]);
-    setName("");
-    setAmount(0);
-    setCategory("");
-  };
+      { id: Date.now(), name, amount, ...(extraField ? { category: category || 'Otros' } : {}) },
+    ])
+    setName('')
+    setAmount(0)
+    setCategory('')
+  }
 
-  const removeItem = (id) => setItems(items.filter((item) => item.id !== id));
+  const removeItem = (id) => setItems(items.filter((item) => item.id !== id))
 
   return (
-    <Card className="rounded-2xl shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-lg">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className={`grid gap-3 ${extraField ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Concepto</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ej. Netflix"
-            />
-          </div>
-          {extraField && (
-            <div className="space-y-2">
-              <Label>Categoría</Label>
-              <Input
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="Ej. Ocio"
-              />
-            </div>
-          )}
-          <div className="space-y-2">
-            <Label>Importe</Label>
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value) || 0)}
-            />
-          </div>
-        </div>
+    <Card title={title}>
+      <div className="form-grid" style={styles.formGrid}>
+        <TextField label="Concepto" value={name} onChange={setName} placeholder="Ej. Netflix" />
+        {extraField && <TextField label="Categoría" value={category} onChange={setCategory} placeholder="Ej. Ocio" />}
+        <NumberField label="Importe" value={amount} onChange={setAmount} />
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <ActionButton onClick={addItem}>
+          <span style={styles.buttonInline}><Plus size={16} /> Añadir</span>
+        </ActionButton>
+      </div>
 
-        <Button onClick={addItem} className="rounded-2xl w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" /> Añadir
-        </Button>
-
-        <div className="space-y-2">
-          {items.length === 0 && (
-            <p className="text-sm text-slate-500">No hay elementos todavía.</p>
-          )}
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between rounded-2xl border p-3 gap-3"
-            >
-              <div className="min-w-0">
-                <p className="font-medium break-words">{item.name}</p>
-                {extraField && (
-                  <p className="text-sm text-slate-500">{item.category}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="font-semibold">{eur.format(item.amount)}</span>
-                <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+      <div style={{ marginTop: 16, display: 'grid', gap: 10 }}>
+        {items.length === 0 ? <p style={styles.muted}>No hay elementos todavía.</p> : null}
+        {items.map((item) => (
+          <div key={item.id} style={styles.listItem}>
+            <div style={{ minWidth: 0 }}>
+              <div style={styles.listItemTitle}>{item.name}</div>
+              {extraField ? <div style={styles.listItemSub}>{item.category}</div> : null}
             </div>
-          ))}
-        </div>
-      </CardContent>
+            <div style={styles.listItemRight}>
+              <strong>{eur.format(item.amount)}</strong>
+              <button onClick={() => removeItem(item.id)} style={styles.iconButton} aria-label="Eliminar">
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     </Card>
-  );
+  )
 }
 
 function HistoryTable({ history }) {
-  const allCategories = Array.from(
-    new Set(history.flatMap((m) => Object.keys(m.categories || {})))
-  );
+  const allCategories = Array.from(new Set(history.flatMap((m) => Object.keys(m.categories || {}))))
 
   return (
-    <div className="overflow-x-auto rounded-2xl border">
-      <table className="min-w-full text-sm">
-        <thead className="bg-slate-100">
+    <div style={styles.tableWrap}>
+      <table style={styles.table}>
+        <thead>
           <tr>
-            <th className="px-4 py-3 text-left font-semibold">Mes</th>
-            <th className="px-4 py-3 text-left font-semibold">Ingresos</th>
-            <th className="px-4 py-3 text-left font-semibold">Ahorro</th>
+            <th style={styles.th}>Mes</th>
+            <th style={styles.th}>Ingresos</th>
+            <th style={styles.th}>Ahorro</th>
             {allCategories.map((category) => (
-              <th key={category} className="px-4 py-3 text-left font-semibold">
-                {category}
-              </th>
+              <th key={category} style={styles.th}>{category}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {history.map((row) => (
-            <tr key={row.id} className="border-t">
-              <td className="px-4 py-3 font-medium">{row.month}</td>
-              <td className="px-4 py-3">{eur.format(row.income)}</td>
-              <td
-                className={`px-4 py-3 font-medium ${
-                  row.saving < 0 ? "text-red-600" : "text-green-700"
-                }`}
-              >
+            <tr key={row.id}>
+              <td style={styles.tdStrong}>{row.month}</td>
+              <td style={styles.td}>{eur.format(row.income)}</td>
+              <td style={{ ...styles.td, color: row.saving < 0 ? '#dc2626' : '#15803d', fontWeight: 700 }}>
                 {eur.format(row.saving)}
               </td>
               {allCategories.map((category) => (
-                <td key={category} className="px-4 py-3">
-                  {eur.format(row.categories?.[category] || 0)}
-                </td>
+                <td key={category} style={styles.td}>{eur.format(row.categories?.[category] || 0)}</td>
               ))}
             </tr>
           ))}
         </tbody>
       </table>
     </div>
-  );
+  )
 }
 
-export default function AppControlGastos() {
-  const initial = loadInitialData();
+function ProgressBar({ value }) {
+  const safe = Math.max(0, Math.min(value, 100))
+  return (
+    <div style={styles.progressTrack}>
+      <div style={{ ...styles.progressFill, width: `${safe}%` }} />
+    </div>
+  )
+}
 
-  const [salary1, setSalary1] = useState(initial.salary1);
-  const [salary2, setSalary2] = useState(initial.salary2);
-  const [rewardIncome, setRewardIncome] = useState(initial.rewardIncome);
-  const [interestIncome, setInterestIncome] = useState(initial.interestIncome);
-  const [targetSavingPct, setTargetSavingPct] = useState(initial.targetSavingPct);
-  const [extraIncomeItems, setExtraIncomeItems] = useState(
-    initial.extraIncomeItems || []
-  );
-  const [fixedExpenses, setFixedExpenses] = useState(initial.fixedExpenses);
-  const [extraExpenseItems, setExtraExpenseItems] = useState(
-    initial.extraExpenseItems || []
-  );
-  const [investments, setInvestments] = useState(initial.investments);
-  const [variableExpenses, setVariableExpenses] = useState(initial.variableExpenses);
-  const [monthlyHistory, setMonthlyHistory] = useState(initial.monthlyHistory);
+function StatCard({ title, value, icon, valueColor }) {
+  return (
+    <Card>
+      <div style={styles.statRow}>
+        <div>
+          <div style={styles.statLabel}>{title}</div>
+          <div style={{ ...styles.statValue, color: valueColor || '#0f172a' }}>{value}</div>
+        </div>
+        <div style={styles.statIcon}>{icon}</div>
+      </div>
+    </Card>
+  )
+}
 
-  const [simOcioCut, setSimOcioCut] = useState(50);
-  const [simInvestmentCut, setSimInvestmentCut] = useState(30);
-  const [historyMonth, setHistoryMonth] = useState("");
-  const [historyIncome, setHistoryIncome] = useState(0);
-  const [historySaving, setHistorySaving] = useState(0);
-  const [historyCategoryText, setHistoryCategoryText] = useState(
-    "Hogar:220, Transporte:120, Ocio:140, Otros:50"
-  );
-  const [saveMessage, setSaveMessage] = useState("");
-  const [importMessage, setImportMessage] = useState("");
+export default function App() {
+  const initial = loadInitialData()
+
+  const [salary1, setSalary1] = useState(initial.salary1)
+  const [salary2, setSalary2] = useState(initial.salary2)
+  const [rewardIncome, setRewardIncome] = useState(initial.rewardIncome)
+  const [interestIncome, setInterestIncome] = useState(initial.interestIncome)
+  const [targetSavingPct, setTargetSavingPct] = useState(initial.targetSavingPct)
+  const [extraIncomeItems, setExtraIncomeItems] = useState(initial.extraIncomeItems || [])
+  const [fixedExpenses, setFixedExpenses] = useState(initial.fixedExpenses)
+  const [extraExpenseItems, setExtraExpenseItems] = useState(initial.extraExpenseItems || [])
+  const [investments, setInvestments] = useState(initial.investments)
+  const [variableExpenses, setVariableExpenses] = useState(initial.variableExpenses)
+  const [monthlyHistory, setMonthlyHistory] = useState(initial.monthlyHistory)
+
+  const [simVariableCut, setSimVariableCut] = useState(50)
+  const [simInvestmentCut, setSimInvestmentCut] = useState(30)
+  const [historyMonth, setHistoryMonth] = useState('')
+  const [historyIncome, setHistoryIncome] = useState(0)
+  const [historySaving, setHistorySaving] = useState(0)
+  const [historyCategoryText, setHistoryCategoryText] = useState('Hogar:220, Transporte:120, Ocio:140, Otros:50')
+  const [saveMessage, setSaveMessage] = useState('')
+  const [importMessage, setImportMessage] = useState('')
+  const [activeTab, setActiveTab] = useState('income_extra')
 
   useEffect(() => {
     const dataToSave = {
@@ -295,12 +296,11 @@ export default function AppControlGastos() {
       investments,
       variableExpenses,
       monthlyHistory,
-    };
-
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-    setSaveMessage("Datos guardados en este iPhone");
-    const timer = setTimeout(() => setSaveMessage(""), 1800);
-    return () => clearTimeout(timer);
+    }
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave))
+    setSaveMessage('Datos guardados en este iPhone')
+    const timer = window.setTimeout(() => setSaveMessage(''), 1500)
+    return () => window.clearTimeout(timer)
   }, [
     salary1,
     salary2,
@@ -313,7 +313,138 @@ export default function AppControlGastos() {
     investments,
     variableExpenses,
     monthlyHistory,
-  ]);
+  ])
+
+  const totalExtraIncome = useMemo(
+    () => extraIncomeItems.reduce((sum, item) => sum + item.amount, 0),
+    [extraIncomeItems]
+  )
+
+  const totalIncome = useMemo(
+    () => salary1 + salary2 + rewardIncome + interestIncome + totalExtraIncome,
+    [salary1, salary2, rewardIncome, interestIncome, totalExtraIncome]
+  )
+
+  const totalFixed = useMemo(() => fixedExpenses.reduce((sum, item) => sum + item.amount, 0), [fixedExpenses])
+  const totalExtraExpenses = useMemo(() => extraExpenseItems.reduce((sum, item) => sum + item.amount, 0), [extraExpenseItems])
+  const totalInvestments = useMemo(() => investments.reduce((sum, item) => sum + item.amount, 0), [investments])
+  const totalVariable = useMemo(() => variableExpenses.reduce((sum, item) => sum + item.amount, 0), [variableExpenses])
+
+  const totalExpenses = totalFixed + totalExtraExpenses + totalInvestments + totalVariable
+  const currentSaving = totalIncome - totalExpenses
+  const savingRate = totalIncome > 0 ? (currentSaving / totalIncome) * 100 : 0
+  const targetSaving = totalIncome * (targetSavingPct / 100)
+  const missingToTarget = Math.max(targetSaving - currentSaving, 0)
+
+  const categoryBreakdown = useMemo(() => {
+    const map = {}
+    variableExpenses.forEach((item) => {
+      map[item.category] = (map[item.category] || 0) + item.amount
+    })
+    return Object.entries(map)
+      .map(([category, amount]) => ({
+        category,
+        amount,
+        pctVariable: totalVariable > 0 ? (amount / totalVariable) * 100 : 0,
+        pctIncome: totalIncome > 0 ? (amount / totalIncome) * 100 : 0,
+      }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [variableExpenses, totalVariable, totalIncome])
+
+  const averageSaving = useMemo(() => {
+    if (!monthlyHistory.length) return 0
+    return monthlyHistory.reduce((acc, item) => acc + item.saving, 0) / monthlyHistory.length
+  }, [monthlyHistory])
+
+  const averageIncome = useMemo(() => {
+    if (!monthlyHistory.length) return 0
+    return monthlyHistory.reduce((acc, item) => acc + item.income, 0) / monthlyHistory.length
+  }, [monthlyHistory])
+
+  const allHistoryCategories = useMemo(
+    () => Array.from(new Set(monthlyHistory.flatMap((item) => Object.keys(item.categories || {})))),
+    [monthlyHistory]
+  )
+
+  const categoryMonthlyAverages = useMemo(() => {
+    return allHistoryCategories
+      .map((category) => {
+        const total = monthlyHistory.reduce((sum, month) => sum + (month.categories?.[category] || 0), 0)
+        return { category, amount: monthlyHistory.length ? total / monthlyHistory.length : 0 }
+      })
+      .sort((a, b) => b.amount - a.amount)
+  }, [allHistoryCategories, monthlyHistory])
+
+  const topLeak = categoryBreakdown[0]
+  const worstHistoricalCategory = categoryMonthlyAverages[0]
+  const investmentRate = totalIncome > 0 ? (totalInvestments / totalIncome) * 100 : 0
+
+  const diagnosis = useMemo(() => {
+    if (savingRate < 0) {
+      return {
+        title: 'Estás en ahorro negativo',
+        text: 'Tus gastos e inversión superan tus ingresos mensuales. Necesitas recortar gasto variable o reducir temporalmente inversión para recuperar margen.',
+      }
+    }
+    if (savingRate < 10) {
+      return {
+        title: 'Tu ahorro es demasiado bajo',
+        text: 'Estás guardando poco margen al mes. El problema probablemente está en el gasto variable o en una aportación de inversión demasiado exigente para tu liquidez actual.',
+      }
+    }
+    if (savingRate < targetSavingPct) {
+      return {
+        title: 'Vas por debajo de tu objetivo',
+        text: 'Tu estructura financiera es estable, pero todavía no llegas a la tasa de ahorro que quieres. Hay margen de ajuste fino.',
+      }
+    }
+    return {
+      title: 'Buen equilibrio mensual',
+      text: 'Tu ahorro actual está alineado o por encima del objetivo marcado. Ahora lo importante es mantener consistencia y controlar fugas pequeñas.',
+    }
+  }, [savingRate, targetSavingPct])
+
+  const investmentMessage =
+    investmentRate > 25
+      ? 'Tu nivel de inversión puede estar limitando tu liquidez mensual.'
+      : investmentRate >= 10
+        ? 'Tu nivel de inversión es razonable para construir patrimonio sin perder demasiado margen.'
+        : 'Tu nivel de inversión es conservador y deja más liquidez libre.'
+
+  const simulatedSaving = currentSaving + simVariableCut + simInvestmentCut
+  const simulatedSavingRate = totalIncome > 0 ? (simulatedSaving / totalIncome) * 100 : 0
+
+  const historyLineData = monthlyHistory.map((item) => ({ month: item.month, ingresos: item.income, ahorro: item.saving }))
+  const categoryChartData = monthlyHistory.map((item) => {
+    const row = { month: item.month }
+    allHistoryCategories.forEach((category) => {
+      row[category] = item.categories?.[category] || 0
+    })
+    return row
+  })
+
+  const addHistoryMonth = () => {
+    if (!historyMonth) return
+    const parsedCategories = historyCategoryText
+      .split(',')
+      .map((chunk) => chunk.trim())
+      .filter(Boolean)
+      .reduce((acc, item) => {
+        const [key, value] = item.split(':')
+        if (key && value) acc[key.trim()] = Number(value.trim()) || 0
+        return acc
+      }, {})
+
+    setMonthlyHistory([
+      ...monthlyHistory,
+      { id: Date.now(), month: historyMonth, income: historyIncome, saving: historySaving, categories: parsedCategories },
+    ])
+
+    setHistoryMonth('')
+    setHistoryIncome(0)
+    setHistorySaving(0)
+    setHistoryCategoryText('Hogar:220, Transporte:120, Ocio:140, Otros:50')
+  }
 
   const resetAllData = () => {
     const cleanData = {
@@ -324,24 +455,23 @@ export default function AppControlGastos() {
       investments: defaultData.investments.map((item) => ({ ...item })),
       variableExpenses: [],
       monthlyHistory: [],
-    };
+    }
 
-    setSalary1(cleanData.salary1);
-    setSalary2(cleanData.salary2);
-    setRewardIncome(cleanData.rewardIncome);
-    setInterestIncome(cleanData.interestIncome);
-    setTargetSavingPct(cleanData.targetSavingPct);
-    setExtraIncomeItems(cleanData.extraIncomeItems);
-    setFixedExpenses(cleanData.fixedExpenses);
-    setExtraExpenseItems(cleanData.extraExpenseItems);
-    setInvestments(cleanData.investments);
-    setVariableExpenses(cleanData.variableExpenses);
-    setMonthlyHistory(cleanData.monthlyHistory);
-
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanData));
-    setSaveMessage("Datos reiniciados");
-    setImportMessage("");
-  };
+    setSalary1(cleanData.salary1)
+    setSalary2(cleanData.salary2)
+    setRewardIncome(cleanData.rewardIncome)
+    setInterestIncome(cleanData.interestIncome)
+    setTargetSavingPct(cleanData.targetSavingPct)
+    setExtraIncomeItems(cleanData.extraIncomeItems)
+    setFixedExpenses(cleanData.fixedExpenses)
+    setExtraExpenseItems(cleanData.extraExpenseItems)
+    setInvestments(cleanData.investments)
+    setVariableExpenses(cleanData.variableExpenses)
+    setMonthlyHistory(cleanData.monthlyHistory)
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanData))
+    setSaveMessage('Datos reiniciados')
+    setImportMessage('')
+  }
 
   const exportData = () => {
     downloadBackup({
@@ -356,694 +486,566 @@ export default function AppControlGastos() {
       investments,
       variableExpenses,
       monthlyHistory,
-    });
-    setSaveMessage("Copia exportada");
-  };
+    })
+    setSaveMessage('Copia exportada')
+  }
 
   const importData = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-
+    const file = event.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
     reader.onload = (e) => {
       try {
-        const parsed = JSON.parse(String(e.target?.result || "{}"));
-        setSalary1(parsed.salary1 ?? defaultData.salary1);
-        setSalary2(parsed.salary2 ?? defaultData.salary2);
-        setRewardIncome(parsed.rewardIncome ?? defaultData.rewardIncome);
-        setInterestIncome(parsed.interestIncome ?? defaultData.interestIncome);
-        setTargetSavingPct(parsed.targetSavingPct ?? defaultData.targetSavingPct);
-        setExtraIncomeItems(parsed.extraIncomeItems ?? defaultData.extraIncomeItems);
-        setFixedExpenses(parsed.fixedExpenses ?? defaultData.fixedExpenses);
-        setExtraExpenseItems(
-          parsed.extraExpenseItems ?? defaultData.extraExpenseItems
-        );
-        setInvestments(parsed.investments ?? defaultData.investments);
-        setVariableExpenses(parsed.variableExpenses ?? defaultData.variableExpenses);
-        setMonthlyHistory(parsed.monthlyHistory ?? defaultData.monthlyHistory);
-        setImportMessage("Copia importada correctamente");
+        const parsed = JSON.parse(String(e.target?.result || '{}'))
+        setSalary1(parsed.salary1 ?? defaultData.salary1)
+        setSalary2(parsed.salary2 ?? defaultData.salary2)
+        setRewardIncome(parsed.rewardIncome ?? defaultData.rewardIncome)
+        setInterestIncome(parsed.interestIncome ?? defaultData.interestIncome)
+        setTargetSavingPct(parsed.targetSavingPct ?? defaultData.targetSavingPct)
+        setExtraIncomeItems(parsed.extraIncomeItems ?? defaultData.extraIncomeItems)
+        setFixedExpenses(parsed.fixedExpenses ?? defaultData.fixedExpenses)
+        setExtraExpenseItems(parsed.extraExpenseItems ?? defaultData.extraExpenseItems)
+        setInvestments(parsed.investments ?? defaultData.investments)
+        setVariableExpenses(parsed.variableExpenses ?? defaultData.variableExpenses)
+        setMonthlyHistory(parsed.monthlyHistory ?? defaultData.monthlyHistory)
+        setImportMessage('Copia importada correctamente')
       } catch {
-        setImportMessage("No se pudo importar el archivo");
+        setImportMessage('No se pudo importar el archivo')
       }
-    };
-
-    reader.readAsText(file);
-    event.target.value = "";
-  };
-
-  const totalExtraIncome = useMemo(
-    () => extraIncomeItems.reduce((sum, item) => sum + item.amount, 0),
-    [extraIncomeItems]
-  );
-
-  const totalIncome = useMemo(
-    () => salary1 + salary2 + rewardIncome + interestIncome + totalExtraIncome,
-    [salary1, salary2, rewardIncome, interestIncome, totalExtraIncome]
-  );
-
-  const totalFixed = useMemo(
-    () => fixedExpenses.reduce((sum, item) => sum + item.amount, 0),
-    [fixedExpenses]
-  );
-
-  const totalExtraExpenses = useMemo(
-    () => extraExpenseItems.reduce((sum, item) => sum + item.amount, 0),
-    [extraExpenseItems]
-  );
-
-  const totalInvestments = useMemo(
-    () => investments.reduce((sum, item) => sum + item.amount, 0),
-    [investments]
-  );
-
-  const totalVariable = useMemo(
-    () => variableExpenses.reduce((sum, item) => sum + item.amount, 0),
-    [variableExpenses]
-  );
-
-  const totalExpenses =
-    totalFixed + totalExtraExpenses + totalInvestments + totalVariable;
-  const currentSaving = totalIncome - totalExpenses;
-  const savingRate = totalIncome > 0 ? (currentSaving / totalIncome) * 100 : 0;
-  const targetSaving = totalIncome * (targetSavingPct / 100);
-  const missingToTarget = Math.max(targetSaving - currentSaving, 0);
-
-  const categoryBreakdown = useMemo(() => {
-    const map = {};
-    variableExpenses.forEach((item) => {
-      map[item.category] = (map[item.category] || 0) + item.amount;
-    });
-
-    return Object.entries(map)
-      .map(([category, amount]) => ({
-        category,
-        amount,
-        pctVariable: totalVariable > 0 ? (amount / totalVariable) * 100 : 0,
-        pctIncome: totalIncome > 0 ? (amount / totalIncome) * 100 : 0,
-      }))
-      .sort((a, b) => b.amount - a.amount);
-  }, [variableExpenses, totalVariable, totalIncome]);
-
-  const topLeak = categoryBreakdown[0];
-
-  const averageSaving = useMemo(() => {
-    if (monthlyHistory.length === 0) return 0;
-    return (
-      monthlyHistory.reduce((acc, item) => acc + item.saving, 0) /
-      monthlyHistory.length
-    );
-  }, [monthlyHistory]);
-
-  const averageIncome = useMemo(() => {
-    if (monthlyHistory.length === 0) return 0;
-    return (
-      monthlyHistory.reduce((acc, item) => acc + item.income, 0) /
-      monthlyHistory.length
-    );
-  }, [monthlyHistory]);
-
-  const allHistoryCategories = useMemo(() => {
-    return Array.from(
-      new Set(monthlyHistory.flatMap((item) => Object.keys(item.categories || {})))
-    );
-  }, [monthlyHistory]);
-
-  const categoryMonthlyAverages = useMemo(() => {
-    return allHistoryCategories
-      .map((category) => {
-        const total = monthlyHistory.reduce(
-          (sum, month) => sum + (month.categories?.[category] || 0),
-          0
-        );
-        return {
-          category,
-          amount: monthlyHistory.length > 0 ? total / monthlyHistory.length : 0,
-        };
-      })
-      .sort((a, b) => b.amount - a.amount);
-  }, [allHistoryCategories, monthlyHistory]);
-
-  const worstHistoricalCategory = categoryMonthlyAverages[0];
-
-  const diagnosis = useMemo(() => {
-    if (savingRate < 0) {
-      return {
-        title: "Estás en ahorro negativo",
-        text: "Tus gastos e inversión superan tus ingresos mensuales. Necesitas recortar gasto variable o reducir temporalmente inversión para recuperar margen.",
-      };
     }
-    if (savingRate < 10) {
-      return {
-        title: "Tu ahorro es demasiado bajo",
-        text: "Estás guardando poco margen al mes. El problema probablemente está en el gasto variable o en una aportación de inversión demasiado exigente para tu liquidez actual.",
-      };
-    }
-    if (savingRate < targetSavingPct) {
-      return {
-        title: "Vas por debajo de tu objetivo",
-        text: "Tu estructura financiera es estable, pero todavía no llegas a la tasa de ahorro que quieres. Hay margen de ajuste fino.",
-      };
-    }
-    return {
-      title: "Buen equilibrio mensual",
-      text: "Tu ahorro actual está alineado o por encima del objetivo marcado. Ahora lo importante es mantener consistencia y controlar fugas pequeñas.",
-    };
-  }, [savingRate, targetSavingPct]);
-
-  const investmentRate = totalIncome > 0 ? (totalInvestments / totalIncome) * 100 : 0;
-  const investmentMessage =
-    investmentRate > 25
-      ? "Tu nivel de inversión puede estar limitando tu liquidez mensual."
-      : investmentRate >= 10
-      ? "Tu nivel de inversión es razonable para construir patrimonio sin perder demasiado margen."
-      : "Tu nivel de inversión es conservador y deja más liquidez libre.";
-
-  const simulatedSaving = currentSaving + simOcioCut + simInvestmentCut;
-  const simulatedSavingRate = totalIncome > 0 ? (simulatedSaving / totalIncome) * 100 : 0;
-
-  const addHistoryMonth = () => {
-    if (!historyMonth) return;
-
-    const parsedCategories = historyCategoryText
-      .split(",")
-      .map((chunk) => chunk.trim())
-      .filter(Boolean)
-      .reduce((acc, item) => {
-        const [key, value] = item.split(":");
-        if (key && value) acc[key.trim()] = Number(value.trim()) || 0;
-        return acc;
-      }, {});
-
-    setMonthlyHistory([
-      ...monthlyHistory,
-      {
-        id: Date.now(),
-        month: historyMonth,
-        income: historyIncome,
-        saving: historySaving,
-        categories: parsedCategories,
-      },
-    ]);
-
-    setHistoryMonth("");
-    setHistoryIncome(0);
-    setHistorySaving(0);
-    setHistoryCategoryText("Hogar:220, Transporte:120, Ocio:140, Otros:50");
-  };
-
-  const historyLineData = monthlyHistory.map((item) => ({
-    month: item.month,
-    ingresos: item.income,
-    ahorro: item.saving,
-  }));
-
-  const categoryChartData = monthlyHistory.map((item) => {
-    const row = { month: item.month };
-    allHistoryCategories.forEach((category) => {
-      row[category] = item.categories?.[category] || 0;
-    });
-    return row;
-  });
+    reader.readAsText(file)
+    event.target.value = ''
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-3 sm:p-4 md:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              {APP_NAME}
-            </h1>
-            <p className="text-sm sm:text-base text-slate-600 max-w-3xl">
-              Web pensada para iPhone: guarda tus datos en el navegador,
-              controla tus ingresos y gastos, y visualiza tu evolución real mes a mes.
+    <div style={styles.page}>
+      <div style={styles.container}>
+        <header style={styles.hero}>
+          <div>
+            <div style={styles.badge}>Versión lista para iPhone</div>
+            <h1 style={styles.title}>{APP_NAME}</h1>
+            <p style={styles.subtitle}>
+              Web personal para controlar ingresos, gastos, inversión y ahorro mensual. Pensada para abrirla en tu iPhone y añadirla a la pantalla de inicio.
             </p>
           </div>
-          <div className="flex flex-col items-stretch gap-2 sm:items-end">
-            {saveMessage && <span className="text-xs text-slate-500">{saveMessage}</span>}
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" className="rounded-2xl" onClick={resetAllData}>
-                <RotateCcw className="mr-2 h-4 w-4" /> Reiniciar
-              </Button>
-              <Button variant="outline" className="rounded-2xl" onClick={exportData}>
-                <Download className="mr-2 h-4 w-4" /> Exportar
-              </Button>
-              <Label className="inline-flex cursor-pointer items-center rounded-2xl border px-4 py-2 text-sm font-medium bg-white hover:bg-slate-50">
-                <Upload className="mr-2 h-4 w-4" /> Importar
-                <input type="file" accept="application/json" className="hidden" onChange={importData} />
-              </Label>
-              <Button className="rounded-2xl">
-                <Save className="mr-2 h-4 w-4" /> Guardado local
-              </Button>
+          <div style={styles.headerActionsWrap}>
+            {saveMessage ? <span style={styles.smallMessage}>{saveMessage}</span> : null}
+            {importMessage ? <span style={styles.smallMessage}>{importMessage}</span> : null}
+            <div className="header-actions" style={styles.headerActions}>
+              <ActionButton onClick={resetAllData} ghost>
+                <span style={styles.buttonInline}><RotateCcw size={16} /> Reiniciar</span>
+              </ActionButton>
+              <ActionButton onClick={exportData} ghost>
+                <span style={styles.buttonInline}><Download size={16} /> Exportar</span>
+              </ActionButton>
+              <label style={{ ...styles.button, ...styles.buttonGhost, cursor: 'pointer' }}>
+                <span style={styles.buttonInline}><Upload size={16} /> Importar</span>
+                <input type="file" accept="application/json" onChange={importData} style={{ display: 'none' }} />
+              </label>
+              <ActionButton>
+                <span style={styles.buttonInline}><Save size={16} /> Guardado local</span>
+              </ActionButton>
             </div>
-            {importMessage && <span className="text-xs text-slate-500">{importMessage}</span>}
+          </div>
+        </header>
+
+        <div className="stats-grid" style={styles.statsGrid}>
+          <StatCard title="Ingresos mensuales" value={eur.format(totalIncome)} icon={<Wallet size={26} />} />
+          <StatCard title="Gastos totales" value={eur.format(totalExpenses)} icon={<Euro size={26} />} />
+          <StatCard title="Ahorro estimado" value={eur.format(currentSaving)} valueColor={currentSaving < 0 ? '#dc2626' : '#15803d'} icon={<PiggyBank size={26} />} />
+          <StatCard title="Tasa de ahorro" value={`${savingRate.toFixed(1)}%`} icon={<TrendingUp size={26} />} />
+        </div>
+
+        <div className="main-grid" style={styles.mainGrid}>
+          <Card title="Resumen del mes">
+            <div style={styles.formGridSingle}>
+              <NumberField label="Nómina 1" value={salary1} onChange={setSalary1} />
+              <NumberField label="Nómina 2" value={salary2} onChange={setSalary2} />
+              <NumberField label="Recompensa / cashback / reinversión" value={rewardIncome} onChange={setRewardIncome} />
+              <NumberField label="Intereses cuenta remunerada" value={interestIncome} onChange={setInterestIncome} />
+              <NumberField label="Objetivo de ahorro (%)" value={targetSavingPct} onChange={setTargetSavingPct} />
+            </div>
+
+            <div style={styles.infoBox}>
+              <div style={styles.rowBetween}><span>Objetivo ahorro</span><strong>{eur.format(targetSaving)}</strong></div>
+              <div style={styles.rowBetween}><span>Te falta para llegar</span><strong>{eur.format(missingToTarget)}</strong></div>
+              <ProgressBar value={(currentSaving / Math.max(targetSaving, 1)) * 100} />
+            </div>
+
+            <div style={styles.infoBox}>
+              <div style={styles.rowBetween}><span>Ingresos extra</span><strong>{eur.format(totalExtraIncome)}</strong></div>
+              <div style={styles.rowBetween}><span>Gastos fijos</span><strong>{eur.format(totalFixed)}</strong></div>
+              <div style={styles.rowBetween}><span>Gastos extra</span><strong>{eur.format(totalExtraExpenses)}</strong></div>
+              <div style={styles.rowBetween}><span>Inversión mensual</span><strong>{eur.format(totalInvestments)}</strong></div>
+              <div style={styles.rowBetween}><span>Gasto variable</span><strong>{eur.format(totalVariable)}</strong></div>
+              <div style={{ ...styles.rowBetween, borderTop: '1px solid #e2e8f0', paddingTop: 10 }}>
+                <span>Total gastos</span><strong>{eur.format(totalExpenses)}</strong>
+              </div>
+            </div>
+          </Card>
+
+          <div>
+            <div className="tabs-row" style={styles.tabsRow}>
+              {[
+                ['income_extra', 'Ingresos extra'],
+                ['fixed', 'Gastos fijos'],
+                ['expense_extra', 'Gastos extra'],
+                ['variable', 'Gastos variables'],
+                ['investments', 'Inversiones'],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  style={{ ...styles.tabButton, ...(activeTab === key ? styles.tabButtonActive : {}) }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === 'income_extra' && (
+              <SectionList title="Tus ingresos extra" items={extraIncomeItems} setItems={setExtraIncomeItems} />
+            )}
+            {activeTab === 'fixed' && (
+              <SectionList title="Tus gastos fijos mensuales" items={fixedExpenses} setItems={setFixedExpenses} />
+            )}
+            {activeTab === 'expense_extra' && (
+              <SectionList title="Tus gastos extra" items={extraExpenseItems} setItems={setExtraExpenseItems} />
+            )}
+            {activeTab === 'variable' && (
+              <SectionList title="Tus gastos variables" items={variableExpenses} setItems={setVariableExpenses} extraField />
+            )}
+            {activeTab === 'investments' && (
+              <SectionList title="Tus aportaciones mensuales" items={investments} setItems={setInvestments} />
+            )}
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Card className="rounded-2xl shadow-sm">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">Ingresos mensuales</p>
-                  <p className="text-2xl font-bold">{eur.format(totalIncome)}</p>
-                </div>
-                <Wallet className="h-8 w-8" />
-              </div>
-            </CardContent>
+        <div className="two-col-grid" style={styles.twoColGrid}>
+          <Card title="Diagnóstico automático" icon={<AlertTriangle size={18} color="#f59e0b" />}>
+            <div style={styles.infoBox}><strong>{diagnosis.title}</strong><p style={styles.paragraph}>{diagnosis.text}</p></div>
+            <div style={styles.infoBox}><strong>Peso de la inversión</strong><p style={styles.paragraph}>Estás destinando {investmentRate.toFixed(1)}% de tus ingresos mensuales a inversión. {investmentMessage}</p></div>
+            <div style={styles.infoBox}><strong>Principal fuga actual</strong><p style={styles.paragraph}>{topLeak ? `${topLeak.category} es tu mayor gasto variable con ${eur.format(topLeak.amount)}, equivalente al ${topLeak.pctIncome.toFixed(1)}% de tus ingresos mensuales.` : 'Todavía no hay suficientes gastos variables cargados.'}</p></div>
+            <div style={styles.infoBox}><strong>Promedio de ahorro histórico</strong><p style={styles.paragraph}>Tu ahorro medio registrado es de {eur.format(averageSaving)} al mes sobre unos ingresos medios de {eur.format(averageIncome)}.</p></div>
           </Card>
 
-          <Card className="rounded-2xl shadow-sm">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">Gastos totales</p>
-                  <p className="text-2xl font-bold">{eur.format(totalExpenses)}</p>
-                </div>
-                <Euro className="h-8 w-8" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl shadow-sm">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">Ahorro estimado</p>
-                  <p className={`text-2xl font-bold ${currentSaving < 0 ? "text-red-600" : "text-green-700"}`}>
-                    {eur.format(currentSaving)}
-                  </p>
-                </div>
-                <PiggyBank className="h-8 w-8" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl shadow-sm">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">Tasa de ahorro</p>
-                  <p className="text-2xl font-bold">{savingRate.toFixed(1)}%</p>
-                </div>
-                <TrendingUp className="h-8 w-8" />
-              </div>
-            </CardContent>
+          <Card title="Simulador rápido" icon={<Sparkles size={18} color="#16a34a" />}>
+            <NumberField label="Reducir gasto variable (€)" value={simVariableCut} onChange={setSimVariableCut} />
+            <NumberField label="Reducir inversión temporalmente (€)" value={simInvestmentCut} onChange={setSimInvestmentCut} />
+            <div style={styles.infoBox}>
+              <div style={styles.rowBetween}><span>Ahorro actual</span><strong>{eur.format(currentSaving)}</strong></div>
+              <div style={styles.rowBetween}><span>Ahorro simulado</span><strong style={{ color: '#15803d' }}>{eur.format(simulatedSaving)}</strong></div>
+              <div style={styles.rowBetween}><span>Nueva tasa de ahorro</span><strong>{simulatedSavingRate.toFixed(1)}%</strong></div>
+            </div>
+            <div style={styles.infoBox}>Reduciendo {eur.format(simVariableCut)} de gasto variable y {eur.format(simInvestmentCut)} de inversión, mejorarías tu ahorro mensual en {eur.format(simVariableCut + simInvestmentCut)}.</div>
           </Card>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-3">
-          <Card className="rounded-2xl shadow-sm xl:col-span-1">
-            <CardHeader>
-              <CardTitle>Resumen del mes</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="grid gap-4">
-                <NumberField label="Nómina 1" value={salary1} onChange={setSalary1} />
-                <NumberField label="Nómina 2" value={salary2} onChange={setSalary2} />
-                <NumberField
-                  label="Recompensa / cashback / reinversión"
-                  value={rewardIncome}
-                  onChange={setRewardIncome}
-                />
-                <NumberField
-                  label="Intereses cuenta remunerada"
-                  value={interestIncome}
-                  onChange={setInterestIncome}
-                />
-                <NumberField
-                  label="Objetivo de ahorro (%)"
-                  value={targetSavingPct}
-                  onChange={setTargetSavingPct}
-                />
-              </div>
-
-              <div className="space-y-2 rounded-2xl border p-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Objetivo ahorro</span>
-                  <span className="font-medium">{eur.format(targetSaving)}</span>
+        <div className="two-col-grid" style={styles.twoColGrid}>
+          <Card title="¿Dónde se te va el dinero ahora?">
+            <div style={{ display: 'grid', gap: 12 }}>
+              {categoryBreakdown.length === 0 ? <p style={styles.muted}>Añade gastos variables para ver categorías.</p> : null}
+              {categoryBreakdown.map((item) => (
+                <div key={item.category} style={styles.infoBox}>
+                  <div style={styles.rowBetween}><strong>{item.category}</strong><span>{eur.format(item.amount)}</span></div>
+                  <div className="mini-meta" style={styles.miniMeta}><span>{item.pctVariable.toFixed(1)}% del gasto variable</span><span>{item.pctIncome.toFixed(1)}% de tus ingresos</span></div>
+                  <ProgressBar value={item.pctVariable} />
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Te falta para llegar</span>
-                  <span className="font-medium">{eur.format(missingToTarget)}</span>
-                </div>
-                <Progress
-                  value={Math.max(
-                    0,
-                    Math.min((currentSaving / Math.max(targetSaving, 1)) * 100, 100)
-                  )}
-                />
-              </div>
-
-              <div className="rounded-2xl border p-4 space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span>Ingresos extra</span>
-                  <span className="font-medium">{eur.format(totalExtraIncome)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Gastos fijos</span>
-                  <span className="font-medium">{eur.format(totalFixed)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Gastos extra</span>
-                  <span className="font-medium">{eur.format(totalExtraExpenses)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Inversión mensual</span>
-                  <span className="font-medium">{eur.format(totalInvestments)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span>Gasto variable</span>
-                  <span className="font-medium">{eur.format(totalVariable)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm pt-2 border-t">
-                  <span>Total gastos</span>
-                  <span className="font-semibold">{eur.format(totalExpenses)}</span>
-                </div>
-              </div>
-            </CardContent>
+              ))}
+            </div>
           </Card>
 
-          <div className="xl:col-span-2">
-            <Tabs defaultValue="income_extra" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 rounded-2xl gap-1 h-auto">
-                <TabsTrigger value="income_extra">Ingresos extra</TabsTrigger>
-                <TabsTrigger value="fixed">Gastos fijos</TabsTrigger>
-                <TabsTrigger value="expense_extra">Gastos extra</TabsTrigger>
-                <TabsTrigger value="variable">Gastos variables</TabsTrigger>
-                <TabsTrigger value="investments">Inversiones</TabsTrigger>
-              </TabsList>
+          <Card title="Lectura rápida">
+            <div style={styles.infoBox}><strong>Mayor categoría histórica</strong><p style={styles.paragraph}>{worstHistoricalCategory ? `En tu histórico, la categoría con mayor media mensual es ${worstHistoricalCategory.category}, con ${eur.format(worstHistoricalCategory.amount)} al mes.` : 'Todavía no hay histórico suficiente.'}</p></div>
+            <div style={styles.infoBox}><strong>Margen disponible real</strong><p style={styles.paragraph}>Después de gastos e inversión, te quedan {eur.format(currentSaving)} al mes. Ese es tu margen real para ahorrar, reforzar liquidez o ajustar inversión.</p></div>
+            <div style={styles.infoBox}><strong>Qué mirar primero</strong><p style={styles.paragraph}>Empieza observando si una sola categoría crece varios meses seguidos. Ahí suele estar la fuga real, más que en los gastos fijos.</p></div>
+          </Card>
+        </div>
 
-              <TabsContent value="income_extra">
-                <SectionList
-                  title="Tus ingresos extra"
-                  items={extraIncomeItems}
-                  setItems={setExtraIncomeItems}
-                />
-              </TabsContent>
+        <div className="main-grid" style={styles.mainGrid}>
+          <Card title="Añadir mes al histórico" icon={<LineChart size={18} color="#2563eb" />}>
+            <TextField label="Mes" value={historyMonth} onChange={setHistoryMonth} placeholder="Ej. Abril 2026" />
+            <NumberField label="Ingresos del mes" value={historyIncome} onChange={setHistoryIncome} />
+            <NumberField label="Ahorro del mes" value={historySaving} onChange={setHistorySaving} />
+            <TextField label="Gasto por categoría" value={historyCategoryText} onChange={setHistoryCategoryText} placeholder="Hogar:220, Transporte:120, Ocio:140" />
+            <p style={styles.muted}>Formato: Categoría:importe, separado por comas.</p>
+            <ActionButton onClick={addHistoryMonth}>Guardar mes</ActionButton>
+          </Card>
 
-              <TabsContent value="fixed">
-                <SectionList
-                  title="Tus gastos fijos mensuales"
-                  items={fixedExpenses}
-                  setItems={setFixedExpenses}
-                />
-              </TabsContent>
+          <Card title="Histórico mes a mes">
+            <HistoryTable history={monthlyHistory} />
+          </Card>
+        </div>
 
-              <TabsContent value="expense_extra">
-                <SectionList
-                  title="Tus gastos extra"
-                  items={extraExpenseItems}
-                  setItems={setExtraExpenseItems}
-                />
-              </TabsContent>
+        <div className="two-col-grid" style={styles.twoColGrid}>
+          <Card title="Evolución de ingresos y ahorro">
+            <div style={styles.chartWrap}>
+              <ResponsiveContainer width="100%" height="100%">
+                <ReLineChart data={historyLineData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => eur.format(Number(value))} />
+                  <Legend />
+                  <Line type="monotone" dataKey="ingresos" stroke="#0f766e" strokeWidth={3} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="ahorro" stroke="#16a34a" strokeWidth={3} dot={{ r: 3 }} />
+                </ReLineChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
 
-              <TabsContent value="variable">
-                <SectionList
-                  title="Tus gastos variables"
-                  items={variableExpenses}
-                  setItems={setVariableExpenses}
-                  extraField
-                />
-              </TabsContent>
+          <Card title="Gasto por categoría mes a mes">
+            <div style={styles.chartWrap}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={categoryChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => eur.format(Number(value))} />
+                  <Legend />
+                  {allHistoryCategories.map((category, index) => (
+                    <Bar key={category} dataKey={category} stackId="a" fill={BAR_COLORS[index % BAR_COLORS.length]} />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </div>
 
-              <TabsContent value="investments">
-                <SectionList
-                  title="Tus aportaciones mensuales"
-                  items={investments}
-                  setItems={setInvestments}
-                />
-              </TabsContent>
-            </Tabs>
+        <Card title="Lista para usar en iPhone" icon={<Smartphone size={18} color="#2563eb" />}>
+          <div className="install-grid" style={styles.installGrid}>
+            <div style={styles.infoBox}><strong>Cómo usarla como si fuera una app</strong><p style={styles.paragraph}>1. Abre la web en Safari. 2. Pulsa compartir. 3. Elige “Añadir a pantalla de inicio”. 4. Verás el icono de {APP_NAME} en tu iPhone.</p></div>
+            <div style={styles.infoBox}><strong>Qué ya hace esta versión</strong><p style={styles.paragraph}>Guarda tus datos en el navegador del iPhone, exporta copia JSON e importa esa copia si cambias de móvil o borras datos.</p></div>
+            <div style={styles.infoBox}><strong>Qué ya tienes resuelto</strong><p style={styles.paragraph}>No necesitas App Store ni cuenta de desarrollador de Apple. Solo publicar en Vercel y abrir la URL desde Safari.</p></div>
           </div>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" /> Diagnóstico automático
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm text-slate-700">
-              <div className="rounded-2xl border p-4">
-                <p className="font-semibold">{diagnosis.title}</p>
-                <p className="mt-1">{diagnosis.text}</p>
-              </div>
-
-              <div className="rounded-2xl border p-4">
-                <p className="font-medium">Peso de la inversión</p>
-                <p className="mt-1">
-                  Estás destinando {investmentRate.toFixed(1)}% de tus ingresos mensuales a inversión. {investmentMessage}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border p-4">
-                <p className="font-medium">Principal fuga actual</p>
-                <p className="mt-1">
-                  {topLeak
-                    ? `${topLeak.category} es tu mayor gasto variable con ${eur.format(topLeak.amount)}, equivalente al ${topLeak.pctIncome.toFixed(1)}% de tus ingresos mensuales.`
-                    : "Todavía no hay suficientes gastos variables cargados."}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border p-4">
-                <p className="font-medium">Promedio de ahorro histórico</p>
-                <p className="mt-1">
-                  Tu ahorro medio registrado es de {eur.format(averageSaving)} al mes sobre unos ingresos medios de {eur.format(averageIncome)}.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5" /> Simulador rápido
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <NumberField
-                label="Reducir ocio / gasto variable (€)"
-                value={simOcioCut}
-                onChange={setSimOcioCut}
-              />
-              <NumberField
-                label="Reducir inversión temporalmente (€)"
-                value={simInvestmentCut}
-                onChange={setSimInvestmentCut}
-              />
-
-              <div className="rounded-2xl border p-4 space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span>Ahorro actual</span>
-                  <span className="font-medium">{eur.format(currentSaving)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Ahorro simulado</span>
-                  <span className="font-semibold text-green-700">
-                    {eur.format(simulatedSaving)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Nueva tasa de ahorro</span>
-                  <span className="font-semibold">{simulatedSavingRate.toFixed(1)}%</span>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border p-4 text-sm text-slate-700">
-                Reduciendo {eur.format(simOcioCut)} de gasto variable y {eur.format(simInvestmentCut)} de inversión, mejorarías tu ahorro mensual en {eur.format(simOcioCut + simInvestmentCut)}.
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader>
-              <CardTitle>¿Dónde se te va el dinero ahora?</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {categoryBreakdown.length === 0 ? (
-                <p className="text-sm text-slate-500">Añade gastos variables para ver categorías.</p>
-              ) : (
-                categoryBreakdown.map((item) => (
-                  <div key={item.category} className="space-y-1 rounded-2xl border p-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{item.category}</span>
-                      <span>{eur.format(item.amount)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span>{item.pctVariable.toFixed(1)}% del gasto variable</span>
-                      <span>{item.pctIncome.toFixed(1)}% de tus ingresos</span>
-                    </div>
-                    <Progress value={item.pctVariable} />
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader>
-              <CardTitle>Lectura rápida</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm text-slate-700">
-              <div className="rounded-2xl border p-4">
-                <p className="font-medium">Mayor categoría histórica</p>
-                <p className="mt-1">
-                  {worstHistoricalCategory
-                    ? `En tu histórico, la categoría con mayor media mensual es ${worstHistoricalCategory.category}, con ${eur.format(worstHistoricalCategory.amount)} al mes.`
-                    : "Todavía no hay histórico suficiente."}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border p-4">
-                <p className="font-medium">Margen disponible real</p>
-                <p className="mt-1">
-                  Después de gastos e inversión, te quedan {eur.format(currentSaving)} al mes. Ese es tu margen real para ahorrar, reforzar liquidez o ajustar inversión.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border p-4">
-                <p className="font-medium">Qué mirar primero</p>
-                <p className="mt-1">
-                  Empieza observando si una sola categoría crece varios meses seguidos. Ahí suele estar la fuga real, más que en los gastos fijos.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-3">
-          <Card className="rounded-2xl shadow-sm xl:col-span-1">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <LineChart className="h-5 w-5" /> Añadir mes al histórico
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Mes</Label>
-                <Input
-                  value={historyMonth}
-                  onChange={(e) => setHistoryMonth(e.target.value)}
-                  placeholder="Ej. Abril 2026"
-                />
-              </div>
-              <NumberField label="Ingresos del mes" value={historyIncome} onChange={setHistoryIncome} />
-              <NumberField label="Ahorro del mes" value={historySaving} onChange={setHistorySaving} />
-              <div className="space-y-2">
-                <Label>Gasto por categoría</Label>
-                <Input
-                  value={historyCategoryText}
-                  onChange={(e) => setHistoryCategoryText(e.target.value)}
-                  placeholder="Hogar:220, Transporte:120, Ocio:140"
-                />
-                <p className="text-xs text-slate-500">
-                  Formato: Categoría:importe, separado por comas.
-                </p>
-              </div>
-              <Button onClick={addHistoryMonth} className="w-full rounded-2xl">
-                Guardar mes
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl shadow-sm xl:col-span-2">
-            <CardHeader>
-              <CardTitle>Histórico mes a mes</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <HistoryTable history={monthlyHistory} />
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader>
-              <CardTitle>Evolución de ingresos y ahorro</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ReLineChart data={historyLineData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => eur.format(Number(value))} />
-                    <Legend />
-                    <Line type="monotone" dataKey="ingresos" strokeWidth={3} />
-                    <Line type="monotone" dataKey="ahorro" strokeWidth={3} />
-                  </ReLineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader>
-              <CardTitle>Gasto por categoría mes a mes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={categoryChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => eur.format(Number(value))} />
-                    <Legend />
-                    {allHistoryCategories.map((category) => (
-                      <Bar key={category} dataKey={category} stackId="a" />
-                    ))}
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="rounded-2xl shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Smartphone className="h-5 w-5" /> Lista para usar en iPhone
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-slate-700 space-y-4">
-            <div className="rounded-2xl border p-4 space-y-2">
-              <p className="font-medium">Cómo usarla como si fuera una app</p>
-              <p>1. Abre la web en Safari en tu iPhone.</p>
-              <p>2. Pulsa el botón de compartir.</p>
-              <p>3. Elige “Añadir a pantalla de inicio”.</p>
-              <p>4. Se guardará un icono de {APP_NAME} en tu iPhone.</p>
-            </div>
-
-            <div className="rounded-2xl border p-4 space-y-2">
-              <p className="font-medium">Qué ya hace esta versión</p>
-              <p>- Guarda tus datos en el propio navegador del iPhone.</p>
-              <p>- Te deja exportar una copia en JSON por seguridad.</p>
-              <p>- Te deja importar esa copia si cambias de móvil o borras datos.</p>
-              <p>- Está pensada para pantallas pequeñas y uso rápido.</p>
-            </div>
-
-            <div className="rounded-2xl border p-4 space-y-2">
-              <p className="font-medium">Qué faltaría para dejarla como PWA completa</p>
-              <p>- Un icono de app.</p>
-              <p>- Un archivo manifest con nombre, colores e icono.</p>
-              <p>- Un pequeño ajuste de publicación para que Safari la trate mejor como app.</p>
-              <p>- Opcionalmente, modo sin conexión más sólido.</p>
-            </div>
-
-            <div className="rounded-2xl border p-4 space-y-2">
-              <p className="font-medium">Lo bueno para ti</p>
-              <p>
-                No necesitas App Store ni conocimientos técnicos profundos. La idea es publicarla en una URL, abrirla en tu iPhone y añadirla a la pantalla de inicio.
-              </p>
-            </div>
-          </CardContent>
         </Card>
       </div>
     </div>
-  );
+  )
+}
+
+const BAR_COLORS = ['#16a34a', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ef4444', '#14b8a6']
+
+const styles = {
+  page: {
+    minHeight: '100vh',
+    background: 'linear-gradient(180deg, #f8fafc 0%, #eefbf3 100%)',
+    padding: '18px 14px 40px',
+  },
+  container: {
+    width: '100%',
+    maxWidth: 1240,
+    margin: '0 auto',
+    display: 'grid',
+    gap: 18,
+  },
+  hero: {
+    display: 'grid',
+    gap: 14,
+    background: '#ffffff',
+    borderRadius: 24,
+    padding: 20,
+    boxShadow: '0 10px 30px rgba(15, 23, 42, 0.06)',
+    border: '1px solid #e2e8f0',
+  },
+  badge: {
+    display: 'inline-flex',
+    background: '#dcfce7',
+    color: '#166534',
+    borderRadius: 999,
+    padding: '6px 10px',
+    fontSize: 12,
+    fontWeight: 700,
+    marginBottom: 8,
+  },
+  title: {
+    margin: '0 0 8px',
+    fontSize: 'clamp(1.8rem, 4vw, 2.8rem)',
+    lineHeight: 1.05,
+  },
+  subtitle: {
+    margin: 0,
+    color: '#475569',
+    lineHeight: 1.5,
+    maxWidth: 820,
+  },
+  headerActionsWrap: {
+    display: 'grid',
+    gap: 8,
+  },
+  smallMessage: {
+    color: '#64748b',
+    fontSize: 12,
+  },
+  headerActions: {
+    display: 'flex',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+    gap: 14,
+  },
+  statRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  statLabel: {
+    color: '#64748b',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 30,
+    fontWeight: 800,
+    lineHeight: 1,
+  },
+  statIcon: {
+    color: '#166534',
+    width: 46,
+    height: 46,
+    display: 'grid',
+    placeItems: 'center',
+    borderRadius: 14,
+    background: '#dcfce7',
+  },
+  mainGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1.1fr 1.4fr',
+    gap: 18,
+  },
+  twoColGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 18,
+  },
+  card: {
+    background: '#ffffff',
+    borderRadius: 24,
+    padding: 18,
+    boxShadow: '0 10px 30px rgba(15, 23, 42, 0.06)',
+    border: '1px solid #e2e8f0',
+  },
+  cardHeader: {
+    marginBottom: 12,
+  },
+  cardTitleWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
+  cardTitle: {
+    margin: 0,
+    fontSize: 18,
+  },
+  cardSubtitle: {
+    margin: 0,
+    fontSize: 13,
+    color: '#64748b',
+  },
+  fieldWrap: {
+    display: 'grid',
+    gap: 6,
+    marginBottom: 12,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#334155',
+  },
+  input: {
+    width: '100%',
+    borderRadius: 14,
+    border: '1px solid #cbd5e1',
+    padding: '12px 14px',
+    outline: 'none',
+    background: '#fff',
+    boxSizing: 'border-box',
+  },
+  button: {
+    border: 'none',
+    background: '#166534',
+    color: '#fff',
+    borderRadius: 16,
+    padding: '12px 16px',
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  buttonGhost: {
+    background: '#fff',
+    color: '#0f172a',
+    border: '1px solid #cbd5e1',
+  },
+  buttonInline: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  formGrid: {
+    display: 'grid',
+    gridTemplateColumns: '2fr 1fr 1fr',
+    gap: 12,
+  },
+  formGridSingle: {
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    gap: 0,
+  },
+  listItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 18,
+    border: '1px solid #e2e8f0',
+    background: '#fff',
+  },
+  listItemTitle: {
+    fontWeight: 700,
+    wordBreak: 'break-word',
+  },
+  listItemSub: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 4,
+  },
+  listItemRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 0,
+  },
+  iconButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    border: '1px solid #e2e8f0',
+    background: '#fff',
+    cursor: 'pointer',
+    display: 'grid',
+    placeItems: 'center',
+  },
+  infoBox: {
+    marginTop: 12,
+    border: '1px solid #e2e8f0',
+    borderRadius: 18,
+    padding: 14,
+    background: '#fff',
+  },
+  rowBetween: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: 10,
+    alignItems: 'center',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  paragraph: {
+    margin: '8px 0 0',
+    color: '#475569',
+    lineHeight: 1.5,
+  },
+  muted: {
+    margin: 0,
+    color: '#64748b',
+    fontSize: 13,
+  },
+  progressTrack: {
+    width: '100%',
+    height: 10,
+    borderRadius: 999,
+    background: '#e2e8f0',
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  progressFill: {
+    height: '100%',
+    background: 'linear-gradient(90deg, #16a34a, #22c55e)',
+    borderRadius: 999,
+  },
+  tabsRow: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(5, 1fr)',
+    gap: 8,
+    marginBottom: 12,
+  },
+  tabButton: {
+    border: '1px solid #cbd5e1',
+    background: '#fff',
+    color: '#0f172a',
+    borderRadius: 14,
+    padding: '12px 10px',
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  tabButtonActive: {
+    background: '#166534',
+    color: '#fff',
+    borderColor: '#166534',
+  },
+  tableWrap: {
+    overflowX: 'auto',
+    border: '1px solid #e2e8f0',
+    borderRadius: 18,
+  },
+  table: {
+    width: '100%',
+    minWidth: 680,
+    borderCollapse: 'collapse',
+    fontSize: 14,
+  },
+  th: {
+    textAlign: 'left',
+    background: '#f8fafc',
+    padding: 12,
+    borderBottom: '1px solid #e2e8f0',
+  },
+  td: {
+    padding: 12,
+    borderBottom: '1px solid #e2e8f0',
+  },
+  tdStrong: {
+    padding: 12,
+    borderBottom: '1px solid #e2e8f0',
+    fontWeight: 700,
+  },
+  miniMeta: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: 8,
+    color: '#64748b',
+    fontSize: 12,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  chartWrap: {
+    width: '100%',
+    height: 300,
+  },
+  installGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+    gap: 12,
+  },
+}
+
+if (typeof document !== 'undefined' && !document.getElementById('app-inline-media')) {
+  const style = document.createElement('style')
+  style.id = 'app-inline-media'
+  style.innerHTML = `
+    @media (max-width: 980px) {
+      .main-grid, .two-col-grid { grid-template-columns: 1fr !important; }
+    }
+    @media (max-width: 760px) {
+      .form-grid { grid-template-columns: 1fr !important; }
+      .tabs-row { grid-template-columns: 1fr !important; }
+      .header-actions { flex-direction: column; }
+      .mini-meta { flex-direction: column; }
+    }
+  `
+  document.head.appendChild(style)
 }
