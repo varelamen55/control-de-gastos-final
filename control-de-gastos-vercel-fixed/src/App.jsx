@@ -57,29 +57,25 @@ const defaultData = {
     { id: 2, name: 'Gasolina / transporte', amount: 120, category: 'Transporte' },
     { id: 3, name: 'Comidas fuera', amount: 110, category: 'Ocio' },
   ],
+const defaultData = {
+  ...
   monthlyHistory: [
     {
       id: 1,
-      month: 'Enero 2026',
-      income: 1680,
-      saving: 290,
-      categories: { Hogar: 240, Transporte: 125, Ocio: 135, Otros: 60 },
+      month: "Enero",
+      ...
     },
     {
       id: 2,
-      month: 'Febrero 2026',
-      income: 1670,
-      saving: 250,
-      categories: { Hogar: 225, Transporte: 120, Ocio: 160, Otros: 70 },
+      month: "Febrero",
+      ...
     },
     {
       id: 3,
-      month: 'Marzo 2026',
-      income: 1695,
-      saving: 210,
-      categories: { Hogar: 235, Transporte: 130, Ocio: 185, Otros: 75 },
-    },
-  ],
+      month: "Marzo",
+      ...
+    }
+  ]
 }
 
 function loadInitialData() {
